@@ -62,6 +62,7 @@ static size_t tempOffset;
 static int bsalir=1;
 static int debug=0;
 static int seconds=5;
+static int numdevice=0;
 static int formato=0;
 static int mrtg=0;
 
@@ -181,6 +182,7 @@ usb_dev_handle *find_lvr_winusb() {
  
      struct usb_bus *bus;
         struct usb_device *dev;
+	int iter = 0;
  
         for (bus = usb_busses; bus; bus = bus->next) {
         for (dev = bus->devices; dev; dev = dev->next) {
@@ -196,6 +198,9 @@ usb_dev_handle *find_lvr_winusb() {
                                         return NULL;
                                 }
                                 read_product_string(handle, dev);
+				if (numdevice > iter++)
+					continue;
+				//printf("device %d %d %d\n", dev->config->bConfigurationValue, dev->config->iConfiguration, dev->config->bNumInterfaces);
                                 return handle;
                         }
                 }
@@ -347,7 +352,7 @@ int main( int argc, char **argv) {
      struct tm *local;
      time_t t;
 
-     while ((c = getopt (argc, argv, "mfcvhl::")) != -1)
+     while ((c = getopt (argc, argv, "mfcvhd::l::")) != -1)
      switch (c)
        {
        case 'v':
@@ -376,6 +381,15 @@ int main( int argc, char **argv) {
            seconds = 5;
            break;
          }
+       case 'd':
+        if (optarg!=NULL){
+           if (!sscanf(optarg,"%i",&numdevice)==1) {
+             fprintf (stderr, "Error: '%s' is not numeric.\n", optarg);
+             exit(EXIT_FAILURE);
+           }
+         }
+         break;
+ 
        case '?':
        case 'h':
          printf("pcsensor version %s\n",VERSION);
@@ -386,6 +400,7 @@ int main( int argc, char **argv) {
 	 printf("          -c output only in Celsius\n");
 	 printf("          -f output only in Fahrenheit\n");
 	 printf("          -m output for mrtg integration\n");
+	 printf("          -d[n] give information for the nth device instead of the first\n");
   
 	 exit(EXIT_FAILURE);
        default:
@@ -458,7 +473,7 @@ int main( int argc, char **argv) {
               } else if (formato==1) {
                   printf("Temperature %.2fC\n", tempc);
               } else {
-                  printf("Temperature %.2fF %.2fC\n", (9.0 / 5.0 * tempc + 32.0), tempc);
+				  printf("Temperature %.2fF %.2fC on %d\n", (9.0 / 5.0 * tempc + 32.0), tempc, numdevice);
               }
               fflush(stdout);
            }
